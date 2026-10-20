@@ -30,7 +30,7 @@
 <main class="main">
 <header class="topbar">
   <div style="display:flex;align-items:center;gap:12px"><button class="mobile-menu" id="menuBtn" aria-label="Open menu">☰</button><div><div class="top-title" id="topTitle">Farmer dashboard</div><div class="location" id="locationLine">Choose your farm location</div></div></div>
-  <div class="top-actions"><select class="select" id="locationSelect" aria-label="Farm location"><option value="Jalgaon">Jalgaon, Maharashtra</option><option value="Pune">Pune, Maharashtra</option><option value="Dhule">Dhule, Maharashtra</option><option value="Nashik">Nashik, Maharashtra</option><option value="Nagpur">Nagpur, Maharashtra</option><option value="Kolhapur">Kolhapur, Maharashtra</option></select><button class="btn secondary gps" id="gpsBtn">◎ GPS</button><div class="avatar">F</div></div>
+  <div class="top-actions"><select class="select" id="locationSelect" aria-label="Farm location"><option value="Pune">Pune, Maharashtra</option><option value="Jalgaon">Jalgaon, Maharashtra</option><option value="Dhule">Dhule, Maharashtra</option><option value="Nashik">Nashik, Maharashtra</option><option value="Nagpur">Nagpur, Maharashtra</option><option value="Kolhapur">Kolhapur, Maharashtra</option></select><button class="btn secondary gps" id="gpsBtn">◎ GPS</button><div class="avatar">F</div></div>
 </header>
 <div class="content">
 <section class="page active" id="page-home">
@@ -95,7 +95,7 @@ const locations={
  Jalgaon:{lat:21.0077,lon:75.5626},Pune:{lat:18.5204,lon:73.8567},Dhule:{lat:20.9042,lon:74.7749},
  Nashik:{lat:19.9975,lon:73.7898},Nagpur:{lat:21.1458,lon:79.0882},Kolhapur:{lat:16.7050,lon:74.2433}
 };
-let weatherData=null, currentLocation="Jalgaon", userCoords=null, lastFetch=null;
+let weatherData=null, currentLocation="Pune", userCoords=null, lastFetch=null;
 const titles={home:"Farmer dashboard",weather:"Weather forecast",advisory:"Crop advisory",classification:"Weather crop match",soil:"Soil data",assistant:"Crop assistant",history:"Saved soil records"};
 function toast(s){const t=$("toast");t.textContent=s;t.style.display="block";clearTimeout(toast.timer);toast.timer=setTimeout(()=>t.style.display="none",2600)}
 function showPage(name){document.querySelectorAll(".page").forEach(p=>p.classList.toggle("active",p.id==="page-"+name));document.querySelectorAll("[data-page]").forEach(b=>b.classList.toggle("active",b.dataset.page===name));$("topTitle").textContent=titles[name]||"CropCast";$("sidebar").classList.remove("open");if(name==="classification")renderClassification();if(name==="advisory")renderAdvisory();if(name==="history")renderRecords();window.scrollTo({top:0,behavior:"smooth"})}
@@ -184,6 +184,11 @@ $("recheckCrops").addEventListener("click",()=>{renderClassification();toast("Cr
 $("refreshBtn").addEventListener("click",()=>loadWeather(userCoords));
 $("locationSelect").addEventListener("change",e=>{currentLocation=e.target.value;userCoords=null;loadWeather()});
 $("gpsBtn").addEventListener("click",()=>{if(!navigator.geolocation){toast("GPS is not supported by this browser.");return}toast("Requesting location permission…");navigator.geolocation.getCurrentPosition(pos=>{const coords={lat:pos.coords.latitude,lon:pos.coords.longitude};$("locationLine").textContent="GPS location";loadWeather(coords)},()=>toast("Location permission unavailable. Choose a district instead."),{enableHighAccuracy:false,timeout:10000,maximumAge:300000})});
+function startLocationSetup(){
+ // Ask the browser for the user's location on startup. If permission is denied, unavailable, or times out, use Pune.
+ if(!navigator.geolocation){currentLocation="Pune";$('locationSelect').value="Pune";loadWeather();return}
+ navigator.geolocation.getCurrentPosition(pos=>{const coords={lat:pos.coords.latitude,lon:pos.coords.longitude};loadWeather(coords)},()=>{currentLocation="Pune";$('locationSelect').value="Pune";loadWeather()},{enableHighAccuracy:false,timeout:10000,maximumAge:300000});
+}
 function getRecords(){try{return JSON.parse(localStorage.getItem("cropcast-soil-records")||"[]")}catch{return[]}}
 function saveRecords(rows){localStorage.setItem("cropcast-soil-records",JSON.stringify(rows))}
 $("soilDate").value=new Date().toISOString().slice(0,10);
@@ -196,7 +201,7 @@ function answerQuestion(q){const s=q.toLowerCase();if(!weatherData)return"Weathe
 function addMessage(text,who){const el=document.createElement("div");el.className="msg "+who;el.textContent=text;$("messages").appendChild(el);$("messages").scrollTop=$("messages").scrollHeight}
 $("chatForm").addEventListener("submit",e=>{e.preventDefault();const q=$("chatInput").value.trim();if(!q)return;addMessage(q,"user");$("chatInput").value="";setTimeout(()=>addMessage(answerQuestion(q),"bot"),180)});
 document.querySelectorAll("[data-question]").forEach(b=>b.addEventListener("click",()=>{addMessage(b.dataset.question,"user");setTimeout(()=>addMessage(answerQuestion(b.dataset.question),"bot"),120)}));
-loadWeather();
+startLocationSetup();
 </script>
 </body>
 </html>
